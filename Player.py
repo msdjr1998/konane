@@ -33,6 +33,8 @@ class Player:
                 # Our turn to remove a piece
                 move = self.minimax_remove()
                 self.board.update_board_remove(move)
+
+                move = self.server_format(move)
                 tn.write(move.encode('ascii') + EOL)
 
             elif 'Removed:' in line:
@@ -44,7 +46,10 @@ class Player:
                 # Our turn to make a move
                 move = self.minimax_jump()
                 self.board.update_board_jump(move)
+
+                move = self.server_format(move)
                 tn.write(move.encode('ascii') + EOL)
+
                 # Listen for the server to tell us our move
                 tn.read_until(EOL).decode('ascii')
 
@@ -82,6 +87,13 @@ class Player:
             target_piece = line[line.index("[") + 1:]
             target_piece = target_piece[0:target_piece.index("]")]
             return tuple([int(x) for x in target_piece.split(":")])
+
+    #format a Move() or a tuple to send to the server
+    def server_format(self, move):
+        if isinstance(move, Move):
+            return "[" + str(move.src[0]) + ":" + str(move.src[1]) + "]:[" + str(move.dst[0]) + ":" + str(move.dst[1]) + "]"
+        else:
+            return "[" + str(move[0]) + ":" + str(move[1]) + "]"
 
     #### TO DO ###
     def minimax_remove(self, alpha=-1, beta=-1, depth=-1):

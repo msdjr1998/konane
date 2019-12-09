@@ -32,11 +32,13 @@ class Board:
             return False
 
     #### TO DO ###
+    # returns a list of tuples
     def get_valid_moves(self):
         moves = []
 
         return moves
 
+    #returns a list of tuples
     def get_valid_removes(self, player):
         if player == -1:
             # We are first, we can remove any one of the following
