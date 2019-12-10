@@ -80,7 +80,7 @@ class Board:
     # returns a list of tuples
     def get_all_valid_moves(self, player):
         moves = []
-        #find all empty spaces
+        # find all empty spaces
         col, row = np.where(self.board == 0)
 
         for i in range(len(col)):

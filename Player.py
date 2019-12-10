@@ -9,6 +9,8 @@ num_pieces_us, num_pieces_op = 1, 1
 num_moves_us, num_moves_op = 1, 1
 # number of pieces that are "locked"
 num_lock_us, num_lock_op = 1, 1
+
+# Not currently implemented
 # we had opening move 1: center
 op_move_center = 1
 # we had opening move 1: corner
@@ -127,7 +129,7 @@ class Player:
 
     def minimax_jump(self, player, board, opening=False, alpha=float("-inf"), beta=float("inf"), depth=0):
         # We've reached the depth limit, get score of current board setup
-        if depth == 2:
+        if depth == 3:
             return (Score(player, board), [])
 
         # Check if this is an opening move
@@ -176,8 +178,8 @@ class Player:
 
     def learn(self):
         # iterate through each state
-        # look at how the features contributed
-        # adjust basd on win / lose
+        # look at how the features contributed to the score
+        # adjust based on win / lose
         for i in self.states:
             i[0].apply_reinforcement(self.delta)
 
@@ -243,6 +245,11 @@ class Score:
             self.num_pieces_op_val /= 162
             self.num_pieces_op_val /= 162
 
+            self.num_lock_op_val /= 162
+            self.num_lock_op_val /= 162
+
+            # not sure how to normalize the number of moves, or even if i should
+
     def apply_reinforcement(self, delta):
         global num_pieces_us
         global num_moves_us
@@ -252,30 +259,31 @@ class Score:
         global num_lock_op
 
         if self.num_pieces_us_val > self.num_moves_us_val and self.num_pieces_us_val > self.num_lock_us_val:
-            num_pieces_us += 0.65 * delta
-            num_moves_us += 0.35 * delta
-            num_lock_us += 0.35 * delta
+            num_pieces_us += 0.6 * delta
+            num_moves_us += 0.3 * delta
+            num_lock_us += 0.3 * delta
         elif self.num_moves_us_val > self.num_pieces_us_val and self.num_moves_us_val > self.num_lock_us_val:
-            num_pieces_us += 0.35 * delta
-            num_moves_us += 0.65 * delta
-            num_lock_us += 0.35 * delta
+            num_pieces_us += 0.3 * delta
+            num_moves_us += 0.6 * delta
+            num_lock_us += 0.3 * delta
         elif self.num_lock_us_val > self.num_pieces_us_val and self.num_lock_us_val > self.num_moves_us_val:
-            num_pieces_us += 0.35 * delta
-            num_moves_us += 0.35 * delta
-            num_lock_us += 0.65 * delta
+            num_pieces_us += 0.3 * delta
+            num_moves_us += 0.3 * delta
+            num_lock_us += 0.6 * delta
 
         if self.num_pieces_op_val > self.num_moves_op_val and self.num_pieces_op_val > self.num_lock_op_val:
-            num_pieces_op -= 0.65 * delta
-            num_moves_op -= 0.35 * delta
-            num_lock_op -= 0.35 * delta
+            num_pieces_op -= 0.6 * delta
+            num_moves_op -= 0.3 * delta
+            num_lock_op -= 0.3 * delta
         elif self.num_moves_op_val > self.num_pieces_op_val and self.num_moves_op_val > self.num_lock_op_val:
-            num_pieces_op -= 0.35 * delta
-            num_moves_op -= 0.65 * delta
-            num_lock_op -= 0.35 * delta
+            num_pieces_op -= 0.3 * delta
+            num_moves_op -= 0.6 * delta
+            num_lock_op -= 0.3 * delta
         elif self.num_lock_op_val > self.num_pieces_op_val and self.num_lock_op_val > self.num_moves_op_val:
-            num_pieces_op -= 0.35 * delta
-            num_moves_op -= 0.35 * delta
-            num_lock_op -= 0.65 * delta
+            num_pieces_op -= 0.3 * delta
+            num_moves_op -= 0.3 * delta
+            num_lock_op -= 0.6 * delta
+
         print(self.num_pieces_us_val, self.num_moves_us_val, self.num_lock_us_val, self.num_pieces_op_val,
               self.num_moves_op_val, self.num_lock_op_val)
         print(num_pieces_us, num_moves_us, num_lock_us, num_pieces_op, num_moves_op, num_lock_op)
