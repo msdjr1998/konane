@@ -100,10 +100,14 @@ class Board:
             row = row[0]
             # Collect list of valid pieces we can remove
             moves = []
-            moves.append((max(col - 1, 0), row))
-            moves.append((min(col + 1, 17), row))
-            moves.append((col, max(row - 1, 0)))
-            moves.append((col, min(row + 1, 17)))
+            if col - 1 >= 0:
+                moves.append((col - 1, row))
+            if col + 1 <= 17:
+                moves.append((col + 1, row))
+            if row - 1 >= 0:
+                moves.append((col, row - 1))
+            if row + 1 <= 17:
+                moves.append((col, row + 1))
         return moves
 
     # Given a tuple (y,x), clear it from the board

@@ -67,9 +67,10 @@ class Player:
         tn.write(opponent + EOL)
         print("Successfully logged in.")
 
-        try:
+        #try:
 
-            while True:
+        while True:
+            try:
                 line = tn.read_until(EOL).decode('ascii')
                 print(line)
 
@@ -108,9 +109,9 @@ class Player:
                     # Set our color
                     color = line[6:]
                     if color == "BLACK":
-                        self.player = 0
-                    else:
                         self.player = 1
+                    else:
+                        self.player = 0
 
                 elif 'wins' in line:
                     if "Opponent wins" in line:
@@ -119,13 +120,14 @@ class Player:
                         self.delta = 1
                     break
                 elif 'Error' in line or 'Connection to host lost.' in line:
-                    print("ERROR:" + line)
                     break
-            print('closing connection')
-            tn.close()
-        except:
-            print('connection closed')
-            self.learn()
+            except:
+                x = 0
+        print('closing connection')
+        tn.close()
+        #except:
+            #print('connection closed')
+        self.learn()
 
     def minimax_jump(self, player, board, opening=False, alpha=float("-inf"), beta=float("inf"), depth=0):
         # We've reached the depth limit, get score of current board setup
@@ -231,15 +233,20 @@ class Score:
 
         col, row = np.where(board.board == 1)
         for i in range(len(col)):
+            num_neighbors = 0
+            for j in  (-1,1):
+                if 0 <= col[i] + j <= 17 and board.board[col[i] + j, row[i]] == 1:
+                    num_neighbors += 1
+                if  0 <= row[i] + j <= 17 and board.board[col[i], row[i] + j]:
+                    num_neighbors += 1
+
             if (col[i] + row[i]) % 2 == player:
                 self.num_pieces_us_val += 1
-                if (board.board[min(col[i] + 1, 17), row[i]] + board.board[max(col[i] - 1, 0), row[i]] +
-                        board.board[col[i], min(row[i] + 1, 17)] + board.board[col[i], max(row[i] - 1, 0)] == 0):
+                if num_neighbors == 0:
                     self.num_lock_us_val += 1
             else:
                 self.num_pieces_op_val += 1
-                if (board.board[min(col[i] + 1, 17), row[i]] + board.board[max(col[i] - 1, 0), row[i]] +
-                        board.board[col[i], min(row[i] + 1, 17)] + board.board[col[i], max(row[i] - 1, 0)] == 0):
+                if num_neighbors == 0:
                     self.num_lock_op_val += 1
 
             self.num_pieces_op_val /= 162
@@ -291,4 +298,7 @@ class Score:
 
 
 p = Player()
+#p.board.update_board_remove((17,17))
+#p.board.get_valid_removes()
+
 p.play_game()
