@@ -50,15 +50,16 @@ class Player:
         self.utility = 0
         # states is a list of (score, move, board)
         self.states = []
+        # delta = 1 if we won, = -1 if we lost
         self.delta = 0
 
     def play_game(self):
         username = input("Username (must be an integer): ").encode('ascii')
-        #username = b'4865'
+        # username = b'4865'
         password = input("Password (must be an integer): ").encode('ascii')
-        #password = b'0000'
+        # password = b'0000'
         opponent = input("Opponent (must be an integer): ").encode('ascii')
-        #opponent = b'5684'
+        # opponent = b'5684'
         EOL = b'\n'
 
         tn = telnetlib.Telnet("artemis.engr.uconn.edu", "4705")
@@ -92,14 +93,9 @@ class Player:
                 elif '?Move(' in line:
                     # Our turn to make a move
                     score, move = self.minimax_jump(self.player, self.board)
-
-                    # apparently the server doesnt check for win states?
-                    if move is None:
-                        move = "[0:0]:[0:0]"
-                    else:
-                        self.states.append((score, move, self.board))
-                        self.board.update_board_jump(move)
-                        move = server_format(move)
+                    self.states.append((score, move, self.board))
+                    self.board.update_board_jump(move)
+                    move = server_format(move)
 
                     tn.write(move.encode('ascii') + EOL)
                     print("Move" + move)
@@ -146,9 +142,6 @@ class Player:
             moves = board.get_valid_removes(player)
         else:
             moves = board.get_all_valid_moves(player)
-
-        if moves == []:
-            print(board)
 
         if player == self.player:
             # our turn
@@ -207,7 +200,7 @@ class Score:
         self.num_lock_us_val = 0
         # number of opponent pieces that are "locked"
         self.num_lock_op_val = 0
-        self.compute(player, board)
+        self.compute_scores(player, board)
         self.total = self.total()
 
     def __lt__(self, other):
@@ -234,14 +227,14 @@ class Score:
                (self.num_pieces_op_val * num_pieces_op) - (num_moves_op * self.num_moves_op_val) - \
                (num_lock_op * self.num_lock_op_val)
 
-    def compute(self, player, board):
-        if (board.possible_moves_black != -1 and player == 0):
+    def compute_scores(self, player, board):
+        if board.possible_moves_black != -1 and player == 0:
             self.num_moves_us_val = board.possible_moves_black
-        elif (board.possible_moves_black != -1 and player == 1):
+        elif board.possible_moves_black != -1 and player == 1:
             self.num_moves_us_val = board.possible_moves_white
-        if (board.possible_moves_black != -1 and player != 0):
+        if board.possible_moves_black != -1 and player != 0:
             self.num_moves_op_val = board.possible_moves_black
-        elif (board.possible_moves_black != -1 and player != 1):
+        elif board.possible_moves_black != -1 and player != 1:
             self.num_moves_op_val = board.possible_moves_white
 
         col, row = np.where(board.board == 1)
