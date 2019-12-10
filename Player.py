@@ -224,8 +224,8 @@ class Score:
                (num_lock_op * self.num_lock_op_val)
 
     def compute(self, player, board):
-        self.num_moves_us_val = board.get_all_valid_moves(player)
-        self.num_moves_op_val = board.get_all_valid_moves(abs(1 - player))
+        self.num_moves_us_val = len(board.get_all_valid_moves(player))
+        self.num_moves_op_val = len(board.get_all_valid_moves(abs(1 - player)))
 
         col, row = np.where(board.board == 1)
         for i in range(len(col)):
@@ -239,6 +239,9 @@ class Score:
                 if (board.board[min(col[i] + 1, 17), row[i]] + board.board[max(col[i] - 1, 0), row[i]] +
                         board.board[col[i], min(row[i] + 1, 17)] + board.board[col[i], max(row[i] - 1, 0)] == 0):
                     self.num_lock_op_val += 1
+
+            self.num_pieces_op_val /= 162
+            self.num_pieces_op_val /= 162
 
     def apply_reinforcement(self, delta):
         global num_pieces_us
