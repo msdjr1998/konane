@@ -3,12 +3,15 @@ import copy
 from Board import *
 
 # Feature coefficients
-# number of pieces someone control
-num_pieces_us, num_pieces_op = 1, 1
 # number of moves that can be made
-num_moves_us, num_moves_op = 1, 1
-# number of pieces that are "locked"
+num_moves_ratio = 1
+# number of pieces someone control
+num_pieces_ratio = 1
+# number of "locked" pieces, pieces that can't be moved (no neighbors)
 num_lock_us, num_lock_op = 1, 1
+# number of pieces that are isolated (have no neighbors, including diagonals)
+num_iso_us, num_iso_op = 1, 1
+
 
 # Not currently implemented
 # we had opening move 1: center
@@ -54,12 +57,12 @@ class Player:
         self.delta = 0
 
     def play_game(self):
-        username = input("Username (must be an integer): ").encode('ascii')
-        # username = b'4865'
-        password = input("Password (must be an integer): ").encode('ascii')
-        # password = b'0000'
-        opponent = input("Opponent (must be an integer): ").encode('ascii')
-        # opponent = b'5684'
+        #username = input("Username (must be an integer): ").encode('ascii')
+        username = b'486'
+        #password = input("Password (must be an integer): ").encode('ascii')
+        password = b'0000'
+        #opponent = input("Opponent (must be an integer): ").encode('ascii')
+        opponent = b'568'
         EOL = b'\n'
 
         tn = telnetlib.Telnet("artemis.engr.uconn.edu", "4705")
@@ -200,6 +203,11 @@ class Score:
         self.num_lock_us_val = 0
         # number of opponent pieces that are "locked"
         self.num_lock_op_val = 0
+        # number of our pieces that are isolated
+        self.num_iso_us_val = 0
+        # number of opponent pieces that are isolated
+        self.num_iso_op_val = 0
+
         self.compute_scores(player, board)
         self.total = self.total()
 
@@ -222,80 +230,82 @@ class Score:
         return str(self.total)
 
     def total(self):
-        return (self.num_pieces_us_val * num_pieces_us) + (num_moves_us * self.num_moves_us_val) + \
-               (num_lock_us * self.num_lock_us_val) - \
-               (self.num_pieces_op_val * num_pieces_op) - (num_moves_op * self.num_moves_op_val) - \
-               (num_lock_op * self.num_lock_op_val)
+        return (self.num_pieces_us_val/self.num_pieces_op_val * num_pieces_ratio) + \
+                (self.num_moves_us_val/self.num_moves_op_val * num_moves_ratio) + \
+                (num_lock_us * self.num_lock_us_val) - (num_lock_op * self.num_lock_op_val) +\
+                (num_iso_us * self.num_iso_us_val) - (num_iso_op * self.num_iso_op_val)
 
     def compute_scores(self, player, board):
-        if board.possible_moves_black != -1 and player == 0:
-            self.num_moves_us_val = board.possible_moves_black
-        elif board.possible_moves_black != -1 and player == 1:
-            self.num_moves_us_val = board.possible_moves_white
-        if board.possible_moves_black != -1 and player != 0:
-            self.num_moves_op_val = board.possible_moves_black
-        elif board.possible_moves_black != -1 and player != 1:
-            self.num_moves_op_val = board.possible_moves_white
-
         col, row = np.where(board.board == 1)
         for i in range(len(col)):
-            num_neighbors = 0
-            for j in (-1, 1):
-                if 0 <= col[i] + j <= 17 and board.board[col[i] + j, row[i]] == 1:
-                    num_neighbors += 1
-                if 0 <= row[i] + j <= 17 and board.board[col[i], row[i] + j]:
-                    num_neighbors += 1
+            is_locked = True
+            is_isolated = True
+
+            neighbors = board.board[col[i]-1:col[i]+2, row[i]-1:row[i]+2]
+            for c, r in np.ndindex(neighbors.shape):
+                if c != 1 and r != 1:
+                    if neighbors[c,r] == 1:
+                        is_isolated = False
+                        if r + c % 2 == 1:
+                            is_locked = False
+                            break
 
             if (col[i] + row[i]) % 2 == player:
                 self.num_pieces_us_val += 1
-                if num_neighbors == 0:
+                if is_locked:
                     self.num_lock_us_val += 1
+                if is_isolated:
+                    self.num_iso_us_val += 1
             else:
                 self.num_pieces_op_val += 1
-                if num_neighbors == 0:
+                if is_locked:
                     self.num_lock_op_val += 1
+                if is_isolated:
+                    self.num_iso_op_val += 1
+
+            if board.possible_moves_black != -1 and player == 0:
+                self.num_moves_us_val = board.possible_moves_black
+            elif board.possible_moves_black != -1 and player == 1:
+                self.num_moves_us_val = board.possible_moves_white
+            if board.possible_moves_black != -1 and player != 0:
+                self.num_moves_op_val = board.possible_moves_black
+            elif board.possible_moves_black != -1 and player != 1:
+                self.num_moves_op_val = board.possible_moves_white
 
     def apply_reinforcement(self, delta):
-        global num_pieces_us
-        global num_moves_us
+        global num_pieces_ratio
+        global num_moves_ratio
         global num_lock_us
-        global num_pieces_op
-        global num_moves_op
+        global num_iso_us
         global num_lock_op
+        global num_iso_op
 
-        if self.num_pieces_us_val > self.num_moves_us_val and self.num_pieces_us_val > self.num_lock_us_val:
-            num_pieces_us += 0.6 * delta
-            num_moves_us += 0.3 * delta
-            num_lock_us += 0.3 * delta
-        elif self.num_moves_us_val > self.num_pieces_us_val and self.num_moves_us_val > self.num_lock_us_val:
-            num_pieces_us += 0.3 * delta
-            num_moves_us += 0.6 * delta
-            num_lock_us += 0.3 * delta
-        elif self.num_lock_us_val > self.num_pieces_us_val and self.num_lock_us_val > self.num_moves_us_val:
-            num_pieces_us += 0.3 * delta
-            num_moves_us += 0.3 * delta
-            num_lock_us += 0.6 * delta
+        num_pieces_ratio += 0.15 * delta
+        num_moves_ratio += 0.15 * delta
 
-        if self.num_pieces_op_val > self.num_moves_op_val and self.num_pieces_op_val > self.num_lock_op_val:
-            num_pieces_op -= 0.6 * delta
-            num_moves_op -= 0.3 * delta
-            num_lock_op -= 0.3 * delta
-        elif self.num_moves_op_val > self.num_pieces_op_val and self.num_moves_op_val > self.num_lock_op_val:
-            num_pieces_op -= 0.3 * delta
-            num_moves_op -= 0.6 * delta
-            num_lock_op -= 0.3 * delta
-        elif self.num_lock_op_val > self.num_pieces_op_val and self.num_lock_op_val > self.num_moves_op_val:
-            num_pieces_op -= 0.3 * delta
-            num_moves_op -= 0.3 * delta
-            num_lock_op -= 0.6 * delta
+        if self.num_lock_us_val < self.num_iso_us_val:
+            self.num_lock_us_val += 0.6 * delta
+            self.num_iso_us_val += 0.3 * delta
+        else:
+            self.num_lock_us_val += 0.3 * delta
+            self.num_iso_us_val += 0.6 * delta
+
+        if self.num_lock_op_val < self.num_iso_op_val:
+            self.num_lock_op_val += 0.6 * delta
+            self.num_iso_op_val += 0.3 * delta
+        else:
+            self.num_lock_op_val += 0.3 * delta
+            self.num_iso_op_val += 0.6 * delta
 
         print("                 Score   Altered Coefficients")
-        print("num pieces us:   ", round(num_pieces_us, 3), "   ", self.num_pieces_op_val)
-        print("num moves us:    ", round(num_moves_us, 3), "   ", self.num_moves_us_val)
+        print("num pieces ratio:", round(num_pieces_ratio, 3), "   ", self.num_pieces_us_val/self.num_pieces_us_val)
+        print("num moves ratio: ", round(num_moves_ratio, 3), "   ", self.num_moves_us_val/self.num_moves_us_val)
         print("num lock us:     ", round(num_lock_us, 3), "   ", self.num_lock_us_val)
-        print("num pieces op:   ", round(num_pieces_op, 3), "   ", self.num_pieces_op_val)
-        print("num moves op:    ", round(num_moves_op, 3), "   ", self.num_moves_op_val)
         print("num lock op:     ", round(num_lock_op, 3), "   ", self.num_lock_op_val)
+        print("num iso op:      ", round(num_iso_op, 3), "   ", self.num_iso_op_val)
+        print("num iso op:      ", round(num_iso_op, 3), "   ", self.num_iso_op_val)
+
+        print("delta: ", delta)
         print("_________________________")
 
 
