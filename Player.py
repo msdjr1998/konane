@@ -53,9 +53,12 @@ class Player:
         self.delta = 0
 
     def play_game(self):
-        username = b'5821'
-        password = b'1285'
-        opponent = b'1285'
+        username = input("Username (must be an integer): ").encode('ascii')
+        #username = b'4865'
+        password = input("Password (must be an integer): ").encode('ascii')
+        #password = b'0000'
+        opponent = input("Opponent (must be an integer): ").encode('ascii')
+        #opponent = b'5684'
         EOL = b'\n'
 
         tn = telnetlib.Telnet("artemis.engr.uconn.edu", "4705")
@@ -67,10 +70,8 @@ class Player:
         tn.write(opponent + EOL)
         print("Successfully logged in.")
 
-        #try:
-
-        while True:
-            try:
+        try:
+            while True:
                 line = tn.read_until(EOL).decode('ascii')
                 print(line)
 
@@ -91,12 +92,17 @@ class Player:
                 elif '?Move(' in line:
                     # Our turn to make a move
                     score, move = self.minimax_jump(self.player, self.board)
-                    self.states.append((score, move, self.board))
-                    self.board.update_board_jump(move)
 
-                    move = server_format(move)
+                    # apparently the server doesnt check for win states?
+                    if move is None:
+                        move = "[0:0]:[0:0]"
+                    else:
+                        self.states.append((score, move, self.board))
+                        self.board.update_board_jump(move)
+                        move = server_format(move)
+
                     tn.write(move.encode('ascii') + EOL)
-
+                    print("Move" + move)
                     # Listen for the server to tell us our move
                     tn.read_until(EOL).decode('ascii')
 
@@ -107,13 +113,13 @@ class Player:
 
                 elif 'Color:' in line:
                     # Set our color
-                    color = line[6:]
-                    if color == "BLACK":
-                        self.player = 1
-                    else:
+                    if "BLACK" in line:
                         self.player = 0
+                    else:
+                        self.player = 1
 
                 elif 'wins' in line:
+                    print(self.board)
                     if "Opponent wins" in line:
                         self.delta = -1
                     else:
@@ -121,16 +127,17 @@ class Player:
                     break
                 elif 'Error' in line or 'Connection to host lost.' in line:
                     break
-            except:
-                x = 0
-        print('closing connection')
-        tn.close()
-        #except:
-            #print('connection closed')
+            print('closing connection...')
+            tn.close()
+            print("success")
+        except:
+            # We probably timed out, and lost
+            print('connection error')
+            self.delta = -1
         self.learn()
 
     def minimax_jump(self, player, board, opening=False, alpha=float("-inf"), beta=float("inf"), depth=0):
-        # We've reached the depth limit, get score of current board setup
+        # We've reached the depth limit, get score of current board setup)
         if depth == 3:
             return (Score(player, board), [])
 
@@ -140,13 +147,12 @@ class Player:
         else:
             moves = board.get_all_valid_moves(player)
 
-        if len(moves) == 0:
-            return (float("-inf"), None)
+        if moves == []:
+            print(board)
 
-        # Alpha-beta pruning
-        current_best = None
         if player == self.player:
             # our turn
+            current_best = None
             for m in moves:
                 next_board = copy.deepcopy(board)
                 if opening:
@@ -163,6 +169,7 @@ class Player:
             return (alpha, current_best)
         else:
             # opponent turn
+            current_best = None
             for m in moves:
                 next_board = copy.deepcopy(board)
                 if opening:
@@ -228,16 +235,22 @@ class Score:
                (num_lock_op * self.num_lock_op_val)
 
     def compute(self, player, board):
-        self.num_moves_us_val = len(board.get_all_valid_moves(player))
-        self.num_moves_op_val = len(board.get_all_valid_moves(abs(1 - player)))
+        if (board.possible_moves_black != -1 and player == 0):
+            self.num_moves_us_val = board.possible_moves_black
+        elif (board.possible_moves_black != -1 and player == 1):
+            self.num_moves_us_val = board.possible_moves_white
+        if (board.possible_moves_black != -1 and player != 0):
+            self.num_moves_op_val = board.possible_moves_black
+        elif (board.possible_moves_black != -1 and player != 1):
+            self.num_moves_op_val = board.possible_moves_white
 
         col, row = np.where(board.board == 1)
         for i in range(len(col)):
             num_neighbors = 0
-            for j in  (-1,1):
+            for j in (-1, 1):
                 if 0 <= col[i] + j <= 17 and board.board[col[i] + j, row[i]] == 1:
                     num_neighbors += 1
-                if  0 <= row[i] + j <= 17 and board.board[col[i], row[i] + j]:
+                if 0 <= row[i] + j <= 17 and board.board[col[i], row[i] + j]:
                     num_neighbors += 1
 
             if (col[i] + row[i]) % 2 == player:
@@ -248,14 +261,6 @@ class Score:
                 self.num_pieces_op_val += 1
                 if num_neighbors == 0:
                     self.num_lock_op_val += 1
-
-            self.num_pieces_op_val /= 162
-            self.num_pieces_op_val /= 162
-
-            self.num_lock_op_val /= 162
-            self.num_lock_op_val /= 162
-
-            # not sure how to normalize the number of moves, or even if i should
 
     def apply_reinforcement(self, delta):
         global num_pieces_us
@@ -291,14 +296,15 @@ class Score:
             num_moves_op -= 0.3 * delta
             num_lock_op -= 0.6 * delta
 
-        print(self.num_pieces_us_val, self.num_moves_us_val, self.num_lock_us_val, self.num_pieces_op_val,
-              self.num_moves_op_val, self.num_lock_op_val)
-        print(num_pieces_us, num_moves_us, num_lock_us, num_pieces_op, num_moves_op, num_lock_op)
+        print("                 Score   Altered Coefficients")
+        print("num pieces us:   ", round(num_pieces_us, 3), "   ", self.num_pieces_op_val)
+        print("num moves us:    ", round(num_moves_us, 3), "   ", self.num_moves_us_val)
+        print("num lock us:     ", round(num_lock_us, 3), "   ", self.num_lock_us_val)
+        print("num pieces op:   ", round(num_pieces_op, 3), "   ", self.num_pieces_op_val)
+        print("num moves op:    ", round(num_moves_op, 3), "   ", self.num_moves_op_val)
+        print("num lock op:     ", round(num_lock_op, 3), "   ", self.num_lock_op_val)
         print("_________________________")
 
 
 p = Player()
-#p.board.update_board_remove((17,17))
-#p.board.get_valid_removes()
-
 p.play_game()

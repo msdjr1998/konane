@@ -20,6 +20,8 @@ class Board:
         # White pieces have an odd sum of indices
         self.board = np.ones((18, 18))
         self.last_move = None
+        self.possible_moves_white = -1
+        self.possible_moves_black = -1
 
     def __repr__(self):
         return str(self.board)
@@ -56,7 +58,7 @@ class Board:
     def get_vertical_jumps(self, col, row, s=1):
         moves = []
         for col2 in range(0, 8):
-            new_index = (col2*2*s)
+            new_index = col + (col2*2*s)
             if 17 >= new_index >= 0:
                 temp_move = Move((new_index, row), (col, row))
                 if self.is_move_valid(temp_move):
@@ -82,10 +84,14 @@ class Board:
         moves = []
         # find all empty spaces
         col, row = np.where(self.board == 0)
-
         for i in range(len(col)):
             if (col[i] + row[i]) % 2 == player:
                 moves += self.get_valid_moves_to(col[i], row[i])
+
+        if player == 0:
+            self.possible_moves_black = len(moves)
+        else:
+            self.possible_moves_white = len(moves)
         return moves
 
     # returns a list of tuples
