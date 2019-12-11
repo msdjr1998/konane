@@ -47,14 +47,6 @@ class Board:
             else:
                 return False
 
-    # get all moves *to* (col, row)
-    def get_valid_moves_to(self, col, row):
-        moves = self.get_vertical_jumps(col, row)
-        moves += self.get_vertical_jumps(col, row, -1)
-        moves += self.get_horizontal_jumps(col, row)
-        moves += self.get_horizontal_jumps(col, row, -1)
-        return moves
-
     def get_vertical_jumps(self, col, row, s=1):
         moves = []
         for col2 in range(0, 8):
@@ -77,6 +69,14 @@ class Board:
                     moves.append(temp_move)
             else:
                 break
+        return moves
+
+    # get all moves *to* (col, row)
+    def get_valid_moves_to(self, col, row):
+        moves = self.get_vertical_jumps(col, row)
+        moves += self.get_vertical_jumps(col, row, -1)
+        moves += self.get_horizontal_jumps(col, row)
+        moves += self.get_horizontal_jumps(col, row, -1)
         return moves
 
     # returns a list of tuples
