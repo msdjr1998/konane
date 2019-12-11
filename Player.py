@@ -58,11 +58,11 @@ class Player:
 
     def play_game(self):
         #username = input("Username (must be an integer): ").encode('ascii')
-        username = b'486'
+        username = b'568'
         #password = input("Password (must be an integer): ").encode('ascii')
         password = b'0000'
         #opponent = input("Opponent (must be an integer): ").encode('ascii')
-        opponent = b'568'
+        opponent = b'486'
         EOL = b'\n'
 
         tn = telnetlib.Telnet("artemis.engr.uconn.edu", "4705")
@@ -74,65 +74,60 @@ class Player:
         tn.write(opponent + EOL)
         print("Successfully logged in.")
 
-        try:
-            while True:
-                line = tn.read_until(EOL).decode('ascii')
-                print(line)
+        while True:
+            line = tn.read_until(EOL).decode('ascii')
+            print(line)
 
-                if '?Remove:' in line:
-                    # Our turn to remove a piece
-                    score, move = self.minimax_jump(self.player, self.board, True)
-                    # self.states.append((score, move, self.board))
-                    self.board.update_board_remove(move)
+            if '?Remove:' in line:
+                # Our turn to remove a piece
+                score, move = self.minimax_jump(self.player, self.board, True)
+                # self.states.append((score, move, self.board))
+                self.board.update_board_remove(move)
 
-                    move = server_format(move)
-                    tn.write(move.encode('ascii') + EOL)
+                move = server_format(move)
+                tn.write(move.encode('ascii') + EOL)
 
-                elif 'Removed:' in line:
-                    # Update the board when the opponent removes a piece
-                    opponent_move = move_parser(line)
-                    self.board.update_board_remove(opponent_move)
+            elif 'Removed:' in line:
+                # Update the board when the opponent removes a piece
+                opponent_move = move_parser(line)
+                self.board.update_board_remove(opponent_move)
 
-                elif '?Move(' in line:
-                    # Our turn to make a move
-                    score, move = self.minimax_jump(self.player, self.board)
-                    self.states.append((score, move, self.board))
-                    self.board.update_board_jump(move)
-                    move = server_format(move)
+            elif '?Move(' in line:
+                # Our turn to make a move
+                score, move = self.minimax_jump(self.player, self.board)
+                self.states.append((score, move, self.board))
+                self.board.update_board_jump(move)
+                move = server_format(move)
 
-                    tn.write(move.encode('ascii') + EOL)
-                    print("Move" + move)
-                    # Listen for the server to tell us our move
-                    tn.read_until(EOL).decode('ascii')
+                tn.write(move.encode('ascii') + EOL)
+                print("Move" + move)
+                # Listen for the server to tell us our move
+                tn.read_until(EOL).decode('ascii')
 
-                elif 'Move[' in line:
-                    # Update the board when the opponent makes a move
-                    opponent_move = move_parser(line)
-                    self.board.update_board_jump(opponent_move)
+            elif 'Move[' in line:
+                # Update the board when the opponent makes a move
+                opponent_move = move_parser(line)
+                self.board.update_board_jump(opponent_move)
 
-                elif 'Color:' in line:
-                    # Set our color
-                    if "BLACK" in line:
-                        self.player = 0
-                    else:
-                        self.player = 1
+            elif 'Color:' in line:
+                # Set our color
+                if "BLACK" in line:
+                    self.player = 0
+                else:
+                    self.player = 1
 
-                elif 'wins' in line:
-                    print(self.board)
-                    if "Opponent wins" in line:
-                        self.delta = -1
-                    else:
-                        self.delta = 1
-                    break
-                elif 'Error' in line or 'Connection to host lost.' in line:
-                    break
-            print('closing connection...')
-            tn.close()
-            print("success")
-        except:
-            # We probably timed out, and lost
-            print('connection error')
-            self.delta = -1
+            elif 'wins' in line:
+                print(self.board)
+                if "Opponent wins" in line:
+                    self.delta = -1
+                else:
+                    self.delta = 1
+                break
+            elif 'Error' in line or 'Connection to host lost.' in line:
+                break
+        print('closing connection...')
+        tn.close()
+        self.delta = -1
         self.learn()
 
     def minimax_jump(self, player, board, opening=False, alpha=float("-inf"), beta=float("inf"), depth=0):
@@ -155,7 +150,7 @@ class Player:
                     next_board.update_board_remove(m)
                 else:
                     next_board.update_board_jump(m)
-                value, next_move = self.minimax_jump(abs(player - 1), next_board, opening, alpha, beta, depth + 1)
+                value, next_move = self.minimax_jump(abs(player - 1), next_board, False, alpha, beta, depth + 1)
 
                 if value > alpha:
                     alpha = value
@@ -172,7 +167,7 @@ class Player:
                     next_board.update_board_remove(m)
                 else:
                     next_board.update_board_jump(m)
-                value, next_move = self.minimax_jump(abs(player - 1), next_board, opening, alpha, beta, depth + 1)
+                value, next_move = self.minimax_jump(abs(player - 1), next_board, False, alpha, beta, depth + 1)
 
                 if value < beta:
                     beta = value
@@ -267,10 +262,14 @@ class Score:
                 self.num_moves_us_val = board.possible_moves_black
             elif board.possible_moves_black != -1 and player == 1:
                 self.num_moves_us_val = board.possible_moves_white
+            else:
+                self.num_moves_us_val = len(board.get_all_valid_moves(player))
             if board.possible_moves_black != -1 and player != 0:
                 self.num_moves_op_val = board.possible_moves_black
             elif board.possible_moves_black != -1 and player != 1:
                 self.num_moves_op_val = board.possible_moves_white
+            else:
+                self.num_moves_op_val = len(board.get_all_valid_moves(player))
 
     def apply_reinforcement(self, delta):
         global num_pieces_ratio
