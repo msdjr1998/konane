@@ -3,12 +3,12 @@ import copy
 from Board import *
 
 # Feature coefficients
-# number of moves that can be made
-num_moves_us = num_moves_op = 1
 # number of pieces someone control
 num_pieces_ratio = 1
+# number of moves that can be made
+num_moves_us, num_moves_op = 1, 1
 # number of "locked" pieces, pieces that can't be moved (no neighbors)
-num_lock_us = num_lock_op = 1
+num_lock_us, num_lock_op = 1, 1
 # number of pieces that are isolated (have no neighbors, including diagonals)
 num_iso_us = num_iso_op = 1
 
@@ -286,28 +286,28 @@ class Score:
         global num_lock_op
         global num_iso_op
 
-        num_pieces_ratio *= (1.15 * delta)
+        num_pieces_ratio *= (1.2 * delta)
 
-        num_lock_us += 0.25 * delta
-        num_iso_us += 0.25 * delta
-        num_moves_us += 0.25 * delta
-        num_lock_op += 0.25 * delta
-        num_iso_op += 0.25 * delta
-        num_moves_op += 0.25 * delta
+        num_lock_us += 0.15 * delta
+        num_iso_us += 0.15 * delta
+        num_moves_us += 0.15 * delta
+        num_lock_op -= 0.15 * delta
+        num_iso_op -= 0.15 * delta
+        num_moves_op -= 0.15 * delta
 
         if self.num_lock_us_val > self.num_iso_us_val and self.num_lock_us_val > self.num_moves_us_val:
-            num_lock_us += 0.3 * delta
+            num_lock_us += 0.35 * delta
         elif self.num_iso_us_val > self.num_lock_us_val and self.num_iso_us_val > self.num_moves_us_val:
-            num_iso_us += 0.3 * delta
+            num_iso_us += 0.35 * delta
         elif self.num_moves_us_val > self.num_iso_us_val and self.num_moves_us_val > self.num_lock_us_val:
-            num_moves_us += 0.3 * delta
+            num_moves_us += 0.35 * delta
 
         if self.num_lock_op_val > self.num_iso_op_val and self.num_lock_op_val > self.num_moves_op_val:
-            num_lock_op += 0.3 * delta
+            num_lock_op -= 0.35 * delta
         elif self.num_iso_op_val > self.num_lock_op_val and self.num_iso_op_val > self.num_moves_op_val:
-            num_iso_op += 0.3 * delta
+            num_iso_op -= 0.35 * delta
         elif self.num_moves_op_val > self.num_iso_op_val and self.num_moves_op_val > self.num_lock_op_val:
-            num_moves_op += 0.3 * delta
+            num_moves_op -= 0.35 * delta
 
         print("                 Score   Altered Coefficients")
         print("num pieces ratio:", round(self.num_pieces_us_val / self.num_pieces_us_val, 3), "   ", num_pieces_ratio)
