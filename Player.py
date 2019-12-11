@@ -127,7 +127,6 @@ class Player:
                 break
         print('closing connection...')
         tn.close()
-        self.delta = -1
         self.learn()
 
     def minimax_jump(self, player, board, opening=False, alpha=float("-inf"), beta=float("inf"), depth=0):
