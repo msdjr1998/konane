@@ -50,18 +50,17 @@ class Player:
         # White pieces have an odd sum of indices
         self.player = -1
         self.board = Board()
-        self.utility = 0
         # states is a list of (score, move, board)
         self.states = []
         # delta = 1 if we won, = -1 if we lost
         self.delta = 0
 
     def play_game(self):
-        #username = input("Username (must be an integer): ").encode('ascii')
+        # username = input("Username (must be an integer): ").encode('ascii')
         username = b'568'
-        #password = input("Password (must be an integer): ").encode('ascii')
+        # password = input("Password (must be an integer): ").encode('ascii')
         password = b'0000'
-        #opponent = input("Opponent (must be an integer): ").encode('ascii')
+        # opponent = input("Opponent (must be an integer): ").encode('ascii')
         opponent = b'486'
         EOL = b'\n'
 
@@ -238,7 +237,7 @@ class Score:
             neighbors = board.board[col[i]-1:col[i]+2, row[i]-1:row[i]+2]
             for c, r in np.ndindex(neighbors.shape):
                 if c != 1 and r != 1:
-                    if neighbors[c,r] == 1:
+                    if neighbors[c, r] == 1:
                         is_isolated = False
                         if r + c % 2 == 1:
                             is_locked = False
