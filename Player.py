@@ -57,11 +57,11 @@ class Player:
 
     def play_game(self):
         # username = input("Username (must be an integer): ").encode('ascii')
-        username = b'568'
+        username = b'5781'
         # password = input("Password (must be an integer): ").encode('ascii')
         password = b'0000'
         # opponent = input("Opponent (must be an integer): ").encode('ascii')
-        opponent = b'486'
+        opponent = b'1875'
         EOL = b'\n'
 
         tn = telnetlib.Telnet("artemis.engr.uconn.edu", "4705")
@@ -73,57 +73,61 @@ class Player:
         tn.write(opponent + EOL)
         print("Successfully logged in.")
 
-        while True:
-            line = tn.read_until(EOL).decode('ascii')
-            print(line)
+        try:
 
-            if '?Remove:' in line:
-                # Our turn to remove a piece
-                score, move = self.minimax_jump(self.player, self.board, True)
-                # self.states.append((score, move, self.board))
-                self.board.update_board_remove(move)
+            while True:
+                line = tn.read_until(EOL).decode('ascii')
+                print(line)
 
-                move = server_format(move)
-                tn.write(move.encode('ascii') + EOL)
+                if '?Remove:' in line:
+                    # Our turn to remove a piece
+                    score, move = self.minimax_jump(self.player, self.board, True)
+                    # self.states.append((score, move, self.board))
+                    self.board.update_board_remove(move)
 
-            elif 'Removed:' in line:
-                # Update the board when the opponent removes a piece
-                opponent_move = move_parser(line)
-                self.board.update_board_remove(opponent_move)
+                    move = server_format(move)
+                    tn.write(move.encode('ascii') + EOL)
 
-            elif '?Move(' in line:
-                # Our turn to make a move
-                score, move = self.minimax_jump(self.player, self.board)
-                self.states.append((score, move, self.board))
-                self.board.update_board_jump(move)
-                move = server_format(move)
+                elif 'Removed:' in line:
+                    # Update the board when the opponent removes a piece
+                    opponent_move = move_parser(line)
+                    self.board.update_board_remove(opponent_move)
 
-                tn.write(move.encode('ascii') + EOL)
-                print("Move" + move)
-                # Listen for the server to tell us our move
-                tn.read_until(EOL).decode('ascii')
+                elif '?Move(' in line:
+                    # Our turn to make a move
+                    score, move = self.minimax_jump(self.player, self.board)
+                    self.states.append((score, move, self.board))
+                    self.board.update_board_jump(move)
+                    move = server_format(move)
 
-            elif 'Move[' in line:
-                # Update the board when the opponent makes a move
-                opponent_move = move_parser(line)
-                self.board.update_board_jump(opponent_move)
+                    tn.write(move.encode('ascii') + EOL)
+                    print("Move" + move)
+                    # Listen for the server to tell us our move
+                    tn.read_until(EOL).decode('ascii')
 
-            elif 'Color:' in line:
-                # Set our color
-                if "BLACK" in line:
-                    self.player = 0
-                else:
-                    self.player = 1
+                elif 'Move[' in line:
+                    # Update the board when the opponent makes a move
+                    opponent_move = move_parser(line)
+                    self.board.update_board_jump(opponent_move)
 
-            elif 'wins' in line:
-                print(self.board)
-                if "Opponent wins" in line:
-                    self.delta = -1
-                else:
-                    self.delta = 1
-                break
-            elif 'Error' in line or 'Connection to host lost.' in line:
-                break
+                elif 'Color:' in line:
+                    # Set our color
+                    if "BLACK" in line:
+                        self.player = 0
+                    else:
+                        self.player = 1
+
+                elif 'wins' in line:
+                    print(self.board)
+                    if "Opponent wins" in line:
+                        self.delta = -1
+                    else:
+                        self.delta = 1
+                    break
+                elif 'Error' in line or 'Connection to host lost.' in line:
+                    break
+        except Exception as e:
+            print("connection error: ", e)
         print('closing connection...')
         tn.close()
         self.learn()
