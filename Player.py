@@ -274,6 +274,8 @@ class Score:
                 self.num_moves_op_val = board.possible_moves_white
             else:
                 self.num_moves_op_val = len(board.get_all_valid_moves(player))
+        self.num_lock_us_val /= 10
+        self.num_lock_op_val /= 10
 
     def apply_reinforcement(self, delta):
         global num_pieces_ratio
@@ -309,7 +311,8 @@ class Score:
 
         print("                 Score   Altered Coefficients")
         print("num pieces ratio:", round(self.num_pieces_us_val / self.num_pieces_us_val, 3), "   ", num_pieces_ratio)
-        print("num moves ratio: ", round(self.num_moves_us_val / self.num_moves_us_val, 3), "   ", num_moves_ratio)
+        print("num moves us:     ", round(self.num_moves_us_val, 3), "   ", num_moves_us)
+        print("num moves op:     ", round(self.num_moves_op_val, 3), "   ", num_moves_op)
         print("num lock us:     ", round(self.num_lock_us_val, 3), "   ", num_lock_us)
         print("num lock op:     ", round(self.num_lock_op_val, 3), "   ", num_lock_op)
         print("num iso op:      ", round(self.num_iso_op_val, 3), "   ", num_iso_op)
