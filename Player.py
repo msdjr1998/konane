@@ -10,7 +10,7 @@ num_moves_us, num_moves_op = 1, 1
 # number of "locked" pieces, pieces that can't be moved (no neighbors)
 num_lock_us, num_lock_op = 1, 1
 # number of pieces that are isolated (have no neighbors, including diagonals)
-num_iso_us = num_iso_op = 1
+num_iso_us, num_iso_op = 1, 1
 
 # Not currently implemented
 # we had opening move 1: center
@@ -56,11 +56,11 @@ class Player:
 
     def play_game(self):
         # username = input("Username (must be an integer): ").encode('ascii')
-        username = b'1875'
+        username = b'5781'
         # password = input("Password (must be an integer): ").encode('ascii')
         password = b'0000'
         # opponent = input("Opponent (must be an integer): ").encode('ascii')
-        opponent = b'5781'
+        opponent = b'1875'
         EOL = b'\n'
 
         tn = telnetlib.Telnet("artemis.engr.uconn.edu", "4705")
@@ -95,7 +95,11 @@ class Player:
                 elif '?Move(' in line:
                     # Our turn to make a move
                     score, move = self.minimax_jump(self.player, self.board)
-                    self.states.append((score, move, self.board))
+
+                    if type(score) is Score:
+                        # self.states.append((score, move, self.board))
+                        self.states.append(score)
+
                     self.board.update_board_jump(move)
                     move = server_format(move)
 
@@ -136,7 +140,7 @@ class Player:
 
     def minimax_jump(self, player, board, opening=False, alpha=float("-inf"), beta=float("inf"), depth=0):
         # We've reached the depth limit, get score of current board setup)
-        if depth == 3:
+        if depth == 2:
             return (Score(player, board), [])
 
         # Check if this is an opening move
@@ -184,8 +188,12 @@ class Player:
         # iterate through each state
         # look at how the features contributed to the score
         # adjust based on win / lose
+        counter = 0
         for i in self.states:
-            i[0].apply_reinforcement(self.delta)
+            i.apply_reinforcement(self.delta, counter)
+            counter += 1
+        print("number of moves: ", len(self.states))
+        print(self.delta)
 
 
 class Score:
@@ -245,7 +253,7 @@ class Score:
                 if c != 1 and r != 1:
                     if neighbors[c, r] == 1:
                         is_isolated = False
-                        if r + c % 2 == 1:
+                        if (r + c) % 2 == 1:
                             is_locked = False
                             break
 
@@ -277,7 +285,7 @@ class Score:
         self.num_lock_us_val /= 10
         self.num_lock_op_val /= 10
 
-    def apply_reinforcement(self, delta):
+    def apply_reinforcement(self, delta, counter):
         global num_pieces_ratio
         global num_moves_us
         global num_lock_us
@@ -286,39 +294,42 @@ class Score:
         global num_lock_op
         global num_iso_op
 
-        num_pieces_ratio *= (1.2 * delta)
+        discount = (0.95**counter) * delta
 
-        num_lock_us += 0.15 * delta
-        num_iso_us += 0.15 * delta
-        num_moves_us += 0.15 * delta
-        num_lock_op -= 0.15 * delta
-        num_iso_op -= 0.15 * delta
-        num_moves_op -= 0.15 * delta
+        num_pieces_ratio += (discount * self.num_pieces_us_val / self.num_pieces_op_val)
+
+        num_lock_us += 0.15 * discount * self.num_lock_us_val
+        num_iso_us += 0.15 * discount * self.num_iso_us_val
+        num_moves_us += 0.15 * discount * self.num_moves_us_val
+        num_lock_op -= 0.15 * discount * self.num_lock_us_val
+        num_iso_op -= 0.15 * discount * self.num_iso_op_val
+        num_moves_op -= 0.15 * discount * self.num_moves_us_val
 
         if self.num_lock_us_val > self.num_iso_us_val and self.num_lock_us_val > self.num_moves_us_val:
-            num_lock_us += 0.35 * delta
+            num_lock_us += 0.3 * discount
         elif self.num_iso_us_val > self.num_lock_us_val and self.num_iso_us_val > self.num_moves_us_val:
-            num_iso_us += 0.35 * delta
+            num_iso_us += 0.3 * discount
         elif self.num_moves_us_val > self.num_iso_us_val and self.num_moves_us_val > self.num_lock_us_val:
-            num_moves_us += 0.35 * delta
+            num_moves_us += 0.3 * discount
 
         if self.num_lock_op_val > self.num_iso_op_val and self.num_lock_op_val > self.num_moves_op_val:
-            num_lock_op -= 0.35 * delta
+            num_lock_op -= 0.3 * discount
         elif self.num_iso_op_val > self.num_lock_op_val and self.num_iso_op_val > self.num_moves_op_val:
-            num_iso_op -= 0.35 * delta
+            num_iso_op -= 0.3 * discount
         elif self.num_moves_op_val > self.num_iso_op_val and self.num_moves_op_val > self.num_lock_op_val:
-            num_moves_op -= 0.35 * delta
+            num_moves_op -= 0.3 * discount
 
+        self.print_values(delta)
+
+    def print_values(self, delta):
         print("                 Score   Altered Coefficients")
         print("num pieces ratio:", round(self.num_pieces_us_val / self.num_pieces_us_val, 3), "   ", num_pieces_ratio)
         print("num moves us:     ", round(self.num_moves_us_val, 3), "   ", num_moves_us)
         print("num moves op:     ", round(self.num_moves_op_val, 3), "   ", num_moves_op)
         print("num lock us:     ", round(self.num_lock_us_val, 3), "   ", num_lock_us)
         print("num lock op:     ", round(self.num_lock_op_val, 3), "   ", num_lock_op)
+        print("num iso op:      ", round(self.num_iso_us_val, 3), "   ", num_iso_us)
         print("num iso op:      ", round(self.num_iso_op_val, 3), "   ", num_iso_op)
-        print("num iso op:      ", round(self.num_iso_op_val, 3), "   ", num_iso_op)
-
-        print("delta: ", delta)
         print("_________________________")
 
 

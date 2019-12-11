@@ -47,36 +47,32 @@ class Board:
             else:
                 return False
 
-    def get_vertical_jumps(self, col, row, s=1):
+    # get all vertical moves *to* (col, row)
+    def get_vertical_jumps(self, col, row):
         moves = []
-        for col2 in range(0, 8):
-            new_index = col + (col2*2*s)
-            if 17 >= new_index >= 0:
-                temp_move = Move((new_index, row), (col, row))
-                if self.is_move_valid(temp_move):
-                    moves.append(temp_move)
-            else:
-                break
+        for s in (-1, 1):
+            for col2 in range(0, 8):
+                new_index = col + (col2*2*s)
+                if 17 >= new_index >= 0:
+                    temp_move = Move((new_index, row), (col, row))
+                    if self.is_move_valid(temp_move):
+                        moves.append(temp_move)
+                else:
+                    break
         return moves
 
-    def get_horizontal_jumps(self, col, row, s=1):
+    # get all horizontal moves *to* (col, row)
+    def get_horizontal_jumps(self, col, row):
         moves = []
-        for row2 in range(0, 8):
-            new_index = row + (row2*2*-s)
-            if 17 >= new_index >= 0:
-                temp_move = Move((col, new_index), (col, row))
-                if self.is_move_valid(temp_move):
-                    moves.append(temp_move)
-            else:
-                break
-        return moves
-
-    # get all moves *to* (col, row)
-    def get_valid_moves_to(self, col, row):
-        moves = self.get_vertical_jumps(col, row)
-        moves += self.get_vertical_jumps(col, row, -1)
-        moves += self.get_horizontal_jumps(col, row)
-        moves += self.get_horizontal_jumps(col, row, -1)
+        for s in (-1, 1):
+            for row2 in range(0, 8):
+                new_index = row + (row2*2*-s)
+                if 17 >= new_index >= 0:
+                    temp_move = Move((col, new_index), (col, row))
+                    if self.is_move_valid(temp_move):
+                        moves.append(temp_move)
+                else:
+                    break
         return moves
 
     # returns a list of tuples
@@ -84,9 +80,11 @@ class Board:
         moves = []
         # find all empty spaces
         col, row = np.where(self.board == 0)
+
         for i in range(len(col)):
             if (col[i] + row[i]) % 2 == player:
-                moves += self.get_valid_moves_to(col[i], row[i])
+                moves += self.get_vertical_jumps(col[i], row[i])
+                moves += self.get_horizontal_jumps(col[i], row[i])
 
         if player == 0:
             self.possible_moves_black = len(moves)
