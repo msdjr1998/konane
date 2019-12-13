@@ -73,7 +73,6 @@ class Player:
         print("Successfully logged in.")
 
         try:
-
             while True:
                 line = tn.read_until(EOL).decode('ascii')
                 print(line)
@@ -239,8 +238,8 @@ class Score:
     def total(self):
         return (self.num_pieces_us_val / self.num_pieces_op_val * num_pieces_ratio) \
                * ((self.num_moves_us_val * num_moves_us) - (self.num_moves_op_val * num_moves_op)
-                  + (num_lock_us * self.num_lock_us_val) - (num_lock_op * self.num_lock_op_val)
-                  + (num_iso_us * self.num_iso_us_val) - (num_iso_op * self.num_iso_op_val))
+                  - (num_lock_us * self.num_lock_us_val) + (num_lock_op * self.num_lock_op_val)
+                  - (num_iso_us * self.num_iso_us_val) + (num_iso_op * self.num_iso_op_val))
 
     def compute_scores(self, player, board):
         col, row = np.where(board.board == 1)
@@ -328,7 +327,7 @@ class Score:
         print("num moves op:     ", round(self.num_moves_op_val, 3), "   ", num_moves_op)
         print("num lock us:     ", round(self.num_lock_us_val, 3), "   ", num_lock_us)
         print("num lock op:     ", round(self.num_lock_op_val, 3), "   ", num_lock_op)
-        print("num iso op:      ", round(self.num_iso_us_val, 3), "   ", num_iso_us)
+        print("num iso us:      ", round(self.num_iso_us_val, 3), "   ", num_iso_us)
         print("num iso op:      ", round(self.num_iso_op_val, 3), "   ", num_iso_op)
         print("_________________________")
 
